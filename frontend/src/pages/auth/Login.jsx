@@ -60,7 +60,7 @@ export default function Login() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-200 via-purple-200 to-pink-200 px-3 sm:px-4 py-6">
       <div className="w-full max-w-md bg-white rounded-2xl sm:rounded-3xl shadow-2xl p-6 sm:p-8 md:p-12 text-center">
         <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 mb-2 leading-tight">
-          Welcome to SPM Engineering
+          WorkForce360 AdminPanel
         </h1>
         <p className="text-sm sm:text-base text-gray-600 mb-5 sm:mb-6">
           Enter your secure 4-digit PIN

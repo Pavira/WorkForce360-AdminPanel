@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import DashboardLayout from "../../app/layout/DashboardLayout";
 import { Plus, Eye, Search, ChevronLeft, ChevronRight } from "lucide-react";
 import { getAllItems } from "@/services/items_service";
+import PageHeader from "@/components/ui/PageHeader";
 
 export default function ListItems() {
   const navigate = useNavigate();
@@ -70,24 +71,19 @@ export default function ListItems() {
   return (
     <DashboardLayout>
       <div className="bg-white rounded-2xl shadow-lg p-4 md:p-6">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 md:mb-8">
-          <div>
-            <h1 className="text-2xl md:text-3xl font-bold text-gray-800">
-              Items Management
-            </h1>
-            <p className="text-sm md:text-base text-gray-500 mt-1">
-              Manage your inventory items
-            </p>
-          </div>
-          <button
-            onClick={() => navigate("/items/add")}
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white text-sm md:text-base font-semibold py-2 md:py-2.5 px-3 md:px-4 rounded-lg transition duration-200 shadow-md hover:shadow-lg"
-          >
-            <Plus size={18} />
-            Add Item
-          </button>
-        </div>
+        <PageHeader
+          title="Items Management"
+          subtitle="Manage your inventory items"
+          action={
+            <button
+              onClick={() => navigate("/items/add")}
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white text-sm md:text-base font-semibold py-2 md:py-2.5 px-3 md:px-4 rounded-lg transition duration-200 shadow-md hover:shadow-lg"
+            >
+              <Plus size={18} />
+              Add Item
+            </button>
+          }
+        />
 
         {/* Search Bar */}
         <div className="mb-6 relative">

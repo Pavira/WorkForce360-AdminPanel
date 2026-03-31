@@ -6,6 +6,8 @@ import ListInvoices from "../pages/invoices/ListInvoices";
 import AddInvoice from "../pages/invoices/AddInvoice";
 import UpdateInvoice from "../pages/invoices/UpdateInvoice";
 import ListCustomers from "../pages/customers/ListCustomers";
+import ListCompanies from "../pages/companies/ListCompanies";
+import ViewCompany from "../pages/companies/ViewCompany";
 import AddCustomer from "../pages/customers/AddCustomer";
 import UpdateCustomer from "../pages/customers/UpdateCustomer";
 import ListItems from "../pages/items/ListItems";
@@ -33,6 +35,8 @@ export default function AppRouter() {
         <Route path="/invoices/:invoiceId" element={<UpdateInvoice />} />
         <Route path="/customers" element={<ListCustomers />} />
         <Route path="/customers/add" element={<AddCustomer />} />
+        <Route path="/companies" element={<ListCompanies />} />
+        <Route path="/companies/:companyId" element={<ViewCompany />} />
         <Route path="/customers/:customerId" element={<UpdateCustomer />} />
         <Route path="/items" element={<ListItems />} />
         <Route path="/items/add" element={<AddItem />} />

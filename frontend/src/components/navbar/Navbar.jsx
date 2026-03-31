@@ -16,9 +16,8 @@ export default function Navbar({ onMenuToggle }) {
           </div>
           <div>
             <h1 className="text-lg md:text-xl font-bold text-white">
-              SPM Billing
+              Work-Force-360-Admin-Panel
             </h1>
-            <p className="text-xs text-purple-200">ERP Solution</p>
           </div>
         </div>
       </div>
@@ -26,7 +25,7 @@ export default function Navbar({ onMenuToggle }) {
       <div className="flex items-center gap-3 md:gap-4">
         <div className="text-right hidden sm:block">
           <p className="text-sm font-semibold text-white">Admin</p>
-          <p className="text-xs text-purple-200">admin@spm.com</p>
+          <p className="text-xs text-purple-200">admin@workforce360.com</p>
         </div>
         <div className="w-12 h-12 rounded-full bg-white text-purple-700 flex items-center justify-center font-bold text-lg flex-shrink-0">
           A

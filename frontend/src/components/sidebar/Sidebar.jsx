@@ -17,9 +17,9 @@ export default function Sidebar({ isOpen, onClose }) {
       icon: <LayoutDashboard size={18} />,
       path: "/dashboard",
     },
-    { name: "Invoices", icon: <FileText size={18} />, path: "/invoices" },
-    { name: "Customers", icon: <Users size={18} />, path: "/customers" },
-    { name: "Items", icon: <Package size={18} />, path: "/items" },
+    // { name: "Invoices", icon: <FileText size={18} />, path: "/invoices" },
+    { name: "Companies", icon: <Users size={18} />, path: "/companies" },
+    // { name: "Items", icon: <Package size={18} />, path: "/items" },
   ];
 
   const logoutMenu = [
