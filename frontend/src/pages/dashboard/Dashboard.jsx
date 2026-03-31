@@ -36,21 +36,25 @@ export default function Dashboard() {
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8 md:mb-10">
         <StatCard
-          title="Total Invoices"
+          title="Total Jobs"
           value={stats.total_invoices}
           isLoading={isLoadingStats}
         />
         <StatCard
-          title="Customers"
+          title="Total Companies"
           value={stats.total_customers}
           isLoading={isLoadingStats}
         />
-        <StatCard title="Items" value={stats.total_items} isLoading={isLoadingStats} />
         <StatCard
+          title="Total Workers"
+          value={stats.total_items}
+          isLoading={isLoadingStats}
+        />
+        {/* <StatCard
           title="Total Revenue"
           value={stats.total_revenue}
           isLoading={isLoadingStats}
-        />
+        /> */}
       </div>
 
       {/* ERP Section */}
