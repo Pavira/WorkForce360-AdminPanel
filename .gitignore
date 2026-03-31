@@ -10,8 +10,4 @@ wheels/
 .venv
 
 
-# Firebase credentials
-firebase_adminsdk.json
-backend/app/core/firebase_adminsdk.json
-
 .history/
