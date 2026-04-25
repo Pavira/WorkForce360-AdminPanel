@@ -1,17 +1,17 @@
 import { useNavigate } from "react-router-dom";
-import { ChevronLeft, ChevronRight, Search } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Search } from "lucide-react";
 import DashboardLayout from "../../app/layout/DashboardLayout";
 import PageHeader from "@/components/ui/PageHeader";
 import StatusFilterSection from "@/components/ui/StatusFilterSection";
-import useCompaniesList from "@/hooks/useCompaniesList";
+import useWorkersList from "@/hooks/useWorkersList";
 
 const SEARCH_OPTIONS = [
-  { label: "Company Name", value: "company_name" },
+  { label: "Worker Name", value: "worker_name" },
   { label: "Phone", value: "phone" },
-  { label: "Email", value: "email" },
+  // { label: "Email", value: "email" },
 ];
 
-export default function ListCompanies() {
+export default function ListWorkers() {
   const navigate = useNavigate();
   const {
     items,
@@ -32,7 +32,8 @@ export default function ListCompanies() {
     handleStatusChange,
     handlePrevPage,
     handleNextPage,
-  } = useCompaniesList();
+  } = useWorkersList();
+
   const statusOptions = [
     { label: "Approved", value: "approved", count: approvedCount },
     { label: "Un-Approved", value: "unapproved", count: unapprovedCount },
@@ -42,7 +43,19 @@ export default function ListCompanies() {
   return (
     <DashboardLayout>
       <div className="rounded-2xl bg-white p-4 shadow-lg md:p-6">
-        <PageHeader title="Companies" subtitle="Manage company details" />
+        <PageHeader
+          title="Workers"
+          subtitle="Manage worker details"
+          // action={
+          //   <button
+          //     onClick={() => navigate("/workers/add")}
+          //     className="inline-flex items-center gap-2 rounded-lg bg-purple-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-purple-700"
+          //   >
+          //     <Plus size={16} />
+          //     Add Worker
+          //   </button>
+          // }
+        />
 
         <StatusFilterSection
           summaryLabel="Total Entries"
@@ -124,43 +137,46 @@ export default function ListCompanies() {
                 <thead>
                   <tr className="border-b border-gray-200 bg-gray-50">
                     <th className="px-5 py-3 text-left text-sm font-semibold text-gray-700">
-                      Company Name
+                      Worker Name
                     </th>
                     <th className="px-5 py-3 text-left text-sm font-semibold text-gray-700">
                       Phone
                     </th>
-                    <th className="px-5 py-3 text-left text-sm font-semibold text-gray-700">
+                    {/* <th className="px-5 py-3 text-left text-sm font-semibold text-gray-700">
                       Email
-                    </th>
+                    </th> */}
                     <th className="px-5 py-3 text-left text-sm font-semibold text-gray-700">
                       Status
                     </th>
                   </tr>
                 </thead>
                 <tbody>
-                  {items.map((company) => {
+                  {items.map((worker) => {
                     const phone =
-                      company.contact_country_code && company.contact_phone
-                        ? `${company.contact_country_code} ${company.contact_phone}`
-                        : company.contact_phone || "-";
+                      worker.contact_country_code && worker.contact_phone
+                        ? `${worker.contact_country_code} ${worker.contact_phone}`
+                        : worker.contact_phone || worker.phone || "-";
 
                     return (
                       <tr
-                        key={company.id}
-                        onClick={() => navigate(`/companies/${company.id}`)}
+                        key={worker.id}
+                        onClick={() => navigate(`/workers/${worker.id}`)}
                         className="cursor-pointer border-b border-gray-100 transition hover:bg-purple-50"
                       >
                         <td className="px-5 py-3 text-sm font-medium text-gray-800">
-                          {company.company_name || "-"}
+                          {worker.worker_name ||
+                            worker.name ||
+                            worker.company_name ||
+                            "-"}
                         </td>
                         <td className="px-5 py-3 text-sm text-gray-700">
                           {phone}
                         </td>
+                        {/* <td className="px-5 py-3 text-sm text-gray-700">
+                          {worker.contact_email || worker.email || "-"}
+                        </td> */}
                         <td className="px-5 py-3 text-sm text-gray-700">
-                          {company.contact_email || "-"}
-                        </td>
-                        <td className="px-5 py-3 text-sm text-gray-700">
-                          {company.status || "-"}
+                          {worker.status || "-"}
                         </td>
                       </tr>
                     );
@@ -170,27 +186,30 @@ export default function ListCompanies() {
             </div>
 
             <div className="space-y-3 md:hidden">
-              {items.map((company) => {
+              {items.map((worker) => {
                 const phone =
-                  company.contact_country_code && company.contact_phone
-                    ? `${company.contact_country_code} ${company.contact_phone}`
-                    : company.contact_phone || "-";
+                  worker.contact_country_code && worker.contact_phone
+                    ? `${worker.contact_country_code} ${worker.contact_phone}`
+                    : worker.contact_phone || worker.phone || "-";
 
                 return (
                   <div
-                    key={company.id}
-                    onClick={() => navigate(`/companies/${company.id}`)}
+                    key={worker.id}
+                    onClick={() => navigate(`/workers/${worker.id}`)}
                     className="cursor-pointer rounded-xl border border-gray-200 bg-gray-50 p-4 transition hover:bg-purple-50"
                   >
                     <p className="text-base font-semibold text-gray-800">
-                      {company.company_name || "-"}
+                      {worker.worker_name ||
+                        worker.name ||
+                        worker.company_name ||
+                        "-"}
                     </p>
                     <p className="mt-1 text-sm text-gray-600">Phone: {phone}</p>
+                    {/* <p className="mt-1 text-sm text-gray-600">
+                      Email: {worker.contact_email || worker.email || "-"}
+                    </p> */}
                     <p className="mt-1 text-sm text-gray-600">
-                      Email: {company.contact_email || "-"}
-                    </p>
-                    <p className="mt-1 text-sm text-gray-600">
-                      Status: {company.status || "-"}
+                      Status: {worker.status || "-"}
                     </p>
                   </div>
                 );

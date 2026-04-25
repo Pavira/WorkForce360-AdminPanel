@@ -6,6 +6,7 @@ import {
   Package,
   LogOut,
   X,
+  Briefcase,
 } from "lucide-react";
 
 export default function Sidebar({ isOpen, onClose }) {
@@ -19,6 +20,8 @@ export default function Sidebar({ isOpen, onClose }) {
     },
     // { name: "Invoices", icon: <FileText size={18} />, path: "/invoices" },
     { name: "Companies", icon: <Users size={18} />, path: "/companies" },
+    { name: "Workers", icon: <Users size={18} />, path: "/workers" },
+    { name: "Jobs", icon: <Briefcase size={18} />, path: "/jobs" },
     // { name: "Items", icon: <Package size={18} />, path: "/items" },
   ];
 

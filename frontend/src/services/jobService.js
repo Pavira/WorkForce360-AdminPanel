@@ -1,6 +1,13 @@
 import api from "@/config/axios";
 
-const VALID_STATUS = new Set(["approved", "unapproved", "draft"]);
+const VALID_STATUS = new Set([
+  "searching",
+  "assigned",
+  "in_progress",
+  "completed",
+  "cancelled",
+  "no_worker_match",
+]);
 
 const isNonEmptyValue = (value) => {
   if (value === null || value === undefined) return false;
@@ -46,18 +53,14 @@ const safeApiError = (error, fallbackMessage) => {
   return safeError;
 };
 
-// Get companies by status with search + hybrid pagination and cancellation support
-export const getCompaniesByStatus = async (
-  status = "approved",
-  options = {},
-) => {
-  const safeStatus = VALID_STATUS.has(status) ? status : "approved";
+export const getJobsByStatus = async (status = "searching", options = {}) => {
+  const safeStatus = VALID_STATUS.has(status) ? status : "searching";
   const queryString = buildSafeQueryParams(
     buildListParams(options.params || {}),
   );
   const endpoint = queryString
-    ? `/admin_panel_company/${safeStatus}?${queryString}`
-    : `/admin_panel_company/${safeStatus}`;
+    ? `/admin_panel_job/${safeStatus}?${queryString}`
+    : `/admin_panel_job/${safeStatus}`;
 
   try {
     const response = await api.get(endpoint, {
@@ -65,52 +68,52 @@ export const getCompaniesByStatus = async (
     });
     return extractApiData(response) || {};
   } catch (error) {
-    throw safeApiError(error, `Failed to load ${safeStatus} companies.`);
+    throw safeApiError(error, `Failed to load ${safeStatus} jobs.`);
   }
 };
 
-// Get Company by ID from admin panel routes
-export const getCompanyById = async (companyId) => {
+export const getJobById = async (jobId) => {
   try {
-    const response = await api.get(`/admin_panel_company/${companyId}`);
+    const response = await api.get(`/admin_panel_job/${jobId}`);
     return extractApiData(response) || {};
   } catch (error) {
-    throw safeApiError(error, "Failed to load company details.");
+    throw safeApiError(error, "Failed to load job details.");
   }
 };
 
-// Approve Company
-export const approveCompany = async (companyId) => {
+export const getNearestWorkersByJobId = async (jobId, options = {}) => {
+  const queryString = buildSafeQueryParams({
+    limit: options.limit,
+  });
+  const endpoint = queryString
+    ? `/admin_panel_job/${jobId}/nearest_workers?${queryString}`
+    : `/admin_panel_job/${jobId}/nearest_workers`;
+
   try {
-    const response = await api.patch(
-      `/admin_panel_company/approve_company_profile/${companyId}`,
+    const response = await api.get(endpoint, {
+      signal: options.signal,
+    });
+    const data = extractApiData(response);
+    return Array.isArray(data) ? data : [];
+  } catch (error) {
+    throw safeApiError(error, "Failed to load nearest workers.");
+  }
+};
+
+export const assignJobToWorker = async (jobId, workerId) => {
+  try {
+    const response = await api.post(
+      `/admin_panel_job/${jobId}/assign/${workerId}`,
+      {
+        job_id: jobId,
+        worker_id: workerId,
+      },
     );
     return extractApiData(response) || {};
   } catch (error) {
-    throw safeApiError(error, "Failed to approve company.");
+    throw safeApiError(error, "Failed to assign worker.");
   }
 };
 
-// Unapprove Company
-export const unapproveCompany = async (companyId) => {
-  try {
-    const response = await api.patch(
-      `/admin_panel_company/unapprove/${companyId}`,
-    );
-    return extractApiData(response) || {};
-  } catch (error) {
-    throw safeApiError(error, "Failed to unapprove company.");
-  }
-};
-
-// Reject Company
-export const rejectCompany = async (companyId) => {
-  try {
-    const response = await api.patch(
-      `/admin_panel_company/reject/${companyId}`,
-    );
-    return extractApiData(response) || {};
-  } catch (error) {
-    throw safeApiError(error, "Failed to reject company.");
-  }
-};
+// Backward-compatible alias used in ViewJob.
+export const assignWorkerToJob = assignJobToWorker;

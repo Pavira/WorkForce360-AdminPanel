@@ -1,17 +1,42 @@
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { ChevronLeft, ChevronRight, Search } from "lucide-react";
 import DashboardLayout from "../../app/layout/DashboardLayout";
 import PageHeader from "@/components/ui/PageHeader";
 import StatusFilterSection from "@/components/ui/StatusFilterSection";
-import useCompaniesList from "@/hooks/useCompaniesList";
+import useJobsList from "@/hooks/useJobsList";
 
 const SEARCH_OPTIONS = [
+  { label: "Job Title", value: "job_title" },
   { label: "Company Name", value: "company_name" },
-  { label: "Phone", value: "phone" },
-  { label: "Email", value: "email" },
 ];
 
-export default function ListCompanies() {
+const JOB_STATUSES = [
+  "searching",
+  "assigned",
+  "in_progress",
+  "completed",
+  "cancelled",
+  "no_worker_match",
+];
+
+const STATUS_LABELS = {
+  searching: "Searching",
+  assigned: "Assigned",
+  in_progress: "In Progress",
+  completed: "Completed",
+  cancelled: "Cancelled",
+  no_worker_match: "No Worker Match",
+};
+
+const getJobId = (job) => job?.id || "-";
+
+const getContactPerson = (job) => job?.name || "-";
+
+const getPhoneNumber = (job) =>
+  job?.phone_number || job?.company?.phone_number || "-";
+
+export default function ListJobs() {
   const navigate = useNavigate();
   const {
     items,
@@ -20,9 +45,7 @@ export default function ListCompanies() {
     searchTerm,
     searchType,
     activeStatus,
-    approvedCount,
-    unapprovedCount,
-    draftCount,
+    statusCounts,
     loading,
     error,
     isPrevDisabled,
@@ -32,17 +55,24 @@ export default function ListCompanies() {
     handleStatusChange,
     handlePrevPage,
     handleNextPage,
-  } = useCompaniesList();
-  const statusOptions = [
-    { label: "Approved", value: "approved", count: approvedCount },
-    { label: "Un-Approved", value: "unapproved", count: unapprovedCount },
-    { label: "Draft", value: "draft", count: draftCount },
-  ];
+  } = useJobsList();
+
+  useEffect(() => {
+    if (!JOB_STATUSES.includes(activeStatus)) {
+      handleStatusChange("searching");
+    }
+  }, [activeStatus, handleStatusChange]);
+
+  const statusOptions = JOB_STATUSES.map((status) => ({
+    label: STATUS_LABELS[status],
+    value: status,
+    count: statusCounts?.[status] ?? 0,
+  }));
 
   return (
     <DashboardLayout>
       <div className="rounded-2xl bg-white p-4 shadow-lg md:p-6">
-        <PageHeader title="Companies" subtitle="Manage company details" />
+        <PageHeader title="Jobs" subtitle="Manage job details" />
 
         <StatusFilterSection
           summaryLabel="Total Entries"
@@ -124,13 +154,13 @@ export default function ListCompanies() {
                 <thead>
                   <tr className="border-b border-gray-200 bg-gray-50">
                     <th className="px-5 py-3 text-left text-sm font-semibold text-gray-700">
-                      Company Name
+                      Job Id
                     </th>
                     <th className="px-5 py-3 text-left text-sm font-semibold text-gray-700">
-                      Phone
+                      Contact Person
                     </th>
                     <th className="px-5 py-3 text-left text-sm font-semibold text-gray-700">
-                      Email
+                      Phone Number
                     </th>
                     <th className="px-5 py-3 text-left text-sm font-semibold text-gray-700">
                       Status
@@ -138,63 +168,51 @@ export default function ListCompanies() {
                   </tr>
                 </thead>
                 <tbody>
-                  {items.map((company) => {
-                    const phone =
-                      company.contact_country_code && company.contact_phone
-                        ? `${company.contact_country_code} ${company.contact_phone}`
-                        : company.contact_phone || "-";
-
-                    return (
-                      <tr
-                        key={company.id}
-                        onClick={() => navigate(`/companies/${company.id}`)}
-                        className="cursor-pointer border-b border-gray-100 transition hover:bg-purple-50"
-                      >
-                        <td className="px-5 py-3 text-sm font-medium text-gray-800">
-                          {company.company_name || "-"}
-                        </td>
-                        <td className="px-5 py-3 text-sm text-gray-700">
-                          {phone}
-                        </td>
-                        <td className="px-5 py-3 text-sm text-gray-700">
-                          {company.contact_email || "-"}
-                        </td>
-                        <td className="px-5 py-3 text-sm text-gray-700">
-                          {company.status || "-"}
-                        </td>
-                      </tr>
-                    );
-                  })}
+                  {items.map((job) => (
+                    <tr
+                      key={job.id}
+                      onClick={() => navigate(`/jobs/${job.id}`)}
+                      className="cursor-pointer border-b border-gray-100 transition hover:bg-purple-50"
+                    >
+                      <td className="px-5 py-3 text-sm font-medium text-gray-800">
+                        {getJobId(job)}
+                      </td>
+                      <td className="px-5 py-3 text-sm text-gray-700">
+                        {getContactPerson(job)}
+                      </td>
+                      <td className="px-5 py-3 text-sm text-gray-700">
+                        {getPhoneNumber(job)}
+                      </td>
+                      <td className="px-5 py-3 text-sm text-gray-700">
+                        {job?.status || "-"}
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
 
             <div className="space-y-3 md:hidden">
-              {items.map((company) => {
-                const phone =
-                  company.contact_country_code && company.contact_phone
-                    ? `${company.contact_country_code} ${company.contact_phone}`
-                    : company.contact_phone || "-";
-
-                return (
-                  <div
-                    key={company.id}
-                    onClick={() => navigate(`/companies/${company.id}`)}
-                    className="cursor-pointer rounded-xl border border-gray-200 bg-gray-50 p-4 transition hover:bg-purple-50"
-                  >
-                    <p className="text-base font-semibold text-gray-800">
-                      {company.company_name || "-"}
-                    </p>
-                    <p className="mt-1 text-sm text-gray-600">Phone: {phone}</p>
-                    <p className="mt-1 text-sm text-gray-600">
-                      Email: {company.contact_email || "-"}
-                    </p>
-                    <p className="mt-1 text-sm text-gray-600">
-                      Status: {company.status || "-"}
-                    </p>
-                  </div>
-                );
-              })}
+              {items.map((job) => (
+                <div
+                  key={job.id}
+                  onClick={() => navigate(`/jobs/${job.id}`)}
+                  className="cursor-pointer rounded-xl border border-gray-200 bg-gray-50 p-4 transition hover:bg-purple-50"
+                >
+                  <p className="text-base font-semibold text-gray-800">
+                    {getJobId(job)}
+                  </p>
+                  <p className="mt-1 text-sm text-gray-600">
+                    Contact Person: {getContactPerson(job)}
+                  </p>
+                  <p className="mt-1 text-sm text-gray-600">
+                    Phone Number: {getPhoneNumber(job)}
+                  </p>
+                  <p className="mt-1 text-sm text-gray-600">
+                    Status: {job?.status || "-"}
+                  </p>
+                </div>
+              ))}
             </div>
           </>
         )}

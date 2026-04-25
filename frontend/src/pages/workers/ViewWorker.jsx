@@ -3,60 +3,63 @@ import { useState, useEffect, useCallback } from "react";
 import DashboardLayout from "../../app/layout/DashboardLayout";
 import {
   ArrowLeft,
+  Pencil,
   Building2,
   CheckCircle,
   XCircle,
   AlertTriangle,
+  Briefcase,
   MapPin,
   Landmark,
   FileText,
+  Activity,
 } from "lucide-react";
 import {
-  getCompanyById,
-  approveCompany,
-  unapproveCompany,
-  rejectCompany,
-} from "@/services/company_service";
+  getWorkerById,
+  approveWorker,
+  unapproveWorker,
+  rejectWorker,
+} from "@/services/workerService";
 import PageHeader from "@/components/ui/PageHeader";
 
-export default function ViewCompany() {
+export default function ViewWorker() {
   const navigate = useNavigate();
-  const { companyId } = useParams();
-  const [company, setCompany] = useState(null);
+  const { workerId } = useParams();
+  const [worker, setWorker] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [actionLoading, setActionLoading] = useState(null);
 
-  const fetchCompanyDetails = useCallback(async () => {
+  const fetchWorkerDetails = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await getCompanyById(companyId);
+      const response = await getWorkerById(workerId);
       if (response) {
-        setCompany(response);
+        setWorker(response);
       } else {
-        throw new Error("Failed to fetch company details");
+        throw new Error("Failed to fetch worker details");
       }
     } catch (err) {
-      setError("Failed to load company details");
-      console.error("Error fetching company:", err);
+      setError("Failed to load worker details");
+      console.error("Error fetching worker:", err);
     } finally {
       setLoading(false);
     }
-  }, [companyId]);
+  }, [workerId]);
 
   useEffect(() => {
-    fetchCompanyDetails();
-  }, [fetchCompanyDetails]);
+    fetchWorkerDetails();
+  }, [fetchWorkerDetails]);
 
   const handleApprove = async () => {
     try {
       setActionLoading("approve");
-      await approveCompany(companyId);
-      navigate("/companies");
+      await approveWorker(workerId);
+      navigate("/workers");
     } catch (err) {
-      console.error("Error approving company:", err);
-      setError("Failed to approve company");
+      console.error("Error approving worker:", err);
+      setError("Failed to approve worker");
     } finally {
       setActionLoading(null);
     }
@@ -65,11 +68,11 @@ export default function ViewCompany() {
   const handleUnapprove = async () => {
     try {
       setActionLoading("unapprove");
-      await unapproveCompany(companyId);
-      navigate("/companies");
+      await unapproveWorker(workerId);
+      navigate("/workers");
     } catch (err) {
-      console.error("Error unapproving company:", err);
-      setError("Failed to unapprove company");
+      console.error("Error unapproving worker:", err);
+      setError("Failed to unapprove worker");
     } finally {
       setActionLoading(null);
     }
@@ -78,11 +81,11 @@ export default function ViewCompany() {
   const handleReject = async () => {
     try {
       setActionLoading("reject");
-      await rejectCompany(companyId);
-      fetchCompanyDetails();
+      await rejectWorker(workerId);
+      fetchWorkerDetails();
     } catch (err) {
-      console.error("Error rejecting company:", err);
-      setError("Failed to reject company");
+      console.error("Error rejecting worker:", err);
+      setError("Failed to reject worker");
     } finally {
       setActionLoading(null);
     }
@@ -93,12 +96,24 @@ export default function ViewCompany() {
     return value;
   };
 
+  const formatDate = (value) => {
+    if (!value) return "-";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return value;
+    return date.toLocaleString();
+  };
+
+  const formatBoolean = (value) => {
+    if (value === null || value === undefined) return "-";
+    return value ? "Yes" : "No";
+  };
+
   const InfoCard = ({ label, value }) => (
     <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
       <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
         {label}
       </p>
-      <p className="mt-1 text-sm font-medium text-slate-800 break-words">
+      <p className="mt-1 break-words text-sm font-medium text-slate-800">
         {display(value)}
       </p>
     </div>
@@ -124,8 +139,8 @@ export default function ViewCompany() {
   if (loading) {
     return (
       <DashboardLayout>
-        <div className="flex justify-center items-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+        <div className="flex items-center justify-center py-12">
+          <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-purple-600" />
         </div>
       </DashboardLayout>
     );
@@ -134,18 +149,18 @@ export default function ViewCompany() {
   if (error) {
     return (
       <DashboardLayout>
-        <div className="p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
+        <div className="rounded-lg border border-red-400 bg-red-100 p-4 text-red-700">
           {error}
         </div>
       </DashboardLayout>
     );
   }
 
-  if (!company) {
+  if (!worker) {
     return (
       <DashboardLayout>
-        <div className="text-center py-12">
-          <p className="text-gray-500 text-lg">Company not found</p>
+        <div className="py-12 text-center">
+          <p className="text-lg text-gray-500">Worker not found</p>
         </div>
       </DashboardLayout>
     );
@@ -155,55 +170,71 @@ export default function ViewCompany() {
     <DashboardLayout>
       <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-50 via-white to-blue-50 p-4 shadow-lg md:p-6">
         <PageHeader
-          title="Company Details 🏢"
-          subtitle="Clean view of all company information"
+          title="Worker Details"
+          subtitle="Clean view of all worker information"
           action={
-            <button
-              onClick={() => navigate("/companies")}
-              className="inline-flex items-center gap-2 rounded-lg border border-red-600 bg-red-500 px-4 py-2 text-sm font-bold text-white transition duration-200 hover:bg-red-600 active:scale-95"
-            >
-              <ArrowLeft size={16} />
-              Back
-            </button>
+            <div className="flex flex-wrap items-center gap-2">
+              {/* <button
+                onClick={() => navigate(`/workers/${workerId}/edit`)}
+                className="inline-flex items-center gap-2 rounded-lg border border-purple-300 bg-purple-50 px-4 py-2 text-sm font-semibold text-purple-700 transition hover:bg-purple-100"
+              >
+                <Pencil size={16} />
+                Edit
+              </button> */}
+              <button
+                onClick={() => navigate("/workers")}
+                className="inline-flex items-center gap-2 rounded-lg border border-red-600 bg-red-500 px-4 py-2 text-sm font-bold text-white transition duration-200 hover:bg-red-600 active:scale-95"
+              >
+                <ArrowLeft size={16} />
+                Back
+              </button>
+            </div>
           }
         />
 
-        {/* Basic Details */}
         <div className="mb-8 rounded-2xl border border-slate-200 bg-white/90 p-4 md:p-5">
           <SectionHeader
             icon={Building2}
-            emoji="🧾"
+            emoji="🏢"
             title="Basic Details"
             subtitle="Core Profile"
           />
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-            <InfoCard label="Company Name" value={company.company_name} />
-            <InfoCard label="Industry" value={company.industry_name} />
-            <InfoCard label="GST Number" value={company.gst_number} />
-            <InfoCard label="Status" value={company.status} />
-            <InfoCard label="Auth Phone" value={company.auth_phone} />
+            <InfoCard label="Worker ID" value={worker.id} />
+            <InfoCard label="Firebase UID" value={worker.firebase_uid} />
+            <InfoCard label="Worker Name" value={worker.name} />
+            {/* <InfoCard label="Status" value={worker.status} />  */}
             <InfoCard
-              label="Contact Person Name"
-              value={company.contact_person_name}
-            />
-            <InfoCard
-              label="Contact Phone"
+              label="Auth Number"
               value={
-                company.contact_country_code && company.contact_phone
-                  ? `${company.contact_country_code} ${company.contact_phone}`
-                  : "-"
+                worker.country_code && worker.auth_number
+                  ? `${worker.country_code} ${worker.auth_number}`
+                  : worker.auth_number
               }
             />
-            <InfoCard label="Contact Email" value={company.contact_email} />
+            <InfoCard label="Country Code" value={worker.country_code} />
+            <InfoCard
+              label="Approval Message Shown"
+              value={formatBoolean(worker.status_approval_message_shown)}
+            />
+            {/* <InfoCard label="Current Job ID" value={worker.current_job_id} /> */}
+            <InfoCard
+              label="Created At"
+              value={formatDate(worker.created_at)}
+            />
+            <InfoCard
+              label="Updated At"
+              value={formatDate(worker.updated_at)}
+            />
           </div>
           <div className="mt-4">
             <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
               Logo
             </p>
-            {company.logo_url ? (
+            {worker.logo_url ? (
               <img
-                src={company.logo_url}
-                alt="Company Logo"
+                src={worker.logo_url}
+                alt="Worker Logo"
                 className="mt-2 h-20 w-20 rounded-lg border border-slate-200 object-cover"
               />
             ) : (
@@ -212,7 +243,50 @@ export default function ViewCompany() {
           </div>
         </div>
 
-        {/* Address Details */}
+        <div className="mb-8 rounded-2xl border border-slate-200 bg-white/90 p-4 md:p-5">
+          <SectionHeader
+            icon={Briefcase}
+            emoji="🎯"
+            title="Category Details"
+            subtitle="Skills and Experience"
+          />
+          {worker.categories && worker.categories.length > 0 ? (
+            worker.categories.map((category, index) => (
+              <div
+                key={category.categoryId || index}
+                className="mb-4 rounded-xl border border-slate-200 bg-slate-50/70 p-4 last:mb-0"
+              >
+                <h4 className="mb-3 text-sm font-semibold text-slate-700">
+                  Category {index + 1}
+                </h4>
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                  <InfoCard
+                    label="Category Name"
+                    value={category.categoryName}
+                  />
+                  <InfoCard
+                    label="Experience (Years)"
+                    value={category.experienceYears}
+                  />
+                  <InfoCard
+                    label="Sub Categories"
+                    value={
+                      Array.isArray(category.subCategoryNames) &&
+                      category.subCategoryNames.length > 0
+                        ? category.subCategoryNames.join(", ")
+                        : "-"
+                    }
+                  />
+                </div>
+              </div>
+            ))
+          ) : (
+            <p className="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-3 text-sm text-slate-600">
+              -
+            </p>
+          )}
+        </div>
+
         <div className="mb-8 rounded-2xl border border-slate-200 bg-white/90 p-4 md:p-5">
           <SectionHeader
             icon={MapPin}
@@ -220,60 +294,50 @@ export default function ViewCompany() {
             title="Address Details"
             subtitle="Locations"
           />
-          {company.addresses && company.addresses.length > 0 ? (
-            company.addresses.map((address, index) => (
-              <div
-                key={address.id || index}
-                className="mb-4 rounded-xl border border-slate-200 bg-slate-50/70 p-4 last:mb-0"
-              >
-                <h4 className="mb-3 text-sm font-semibold text-slate-700">
-                  Address {index + 1} 🏙️
-                </h4>
-                <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                  <InfoCard label="Address" value={address.address} />
-                  <InfoCard label="Unit Name" value={address.unit_name} />
-                  <InfoCard label="City" value={address.city} />
-                  <InfoCard label="State" value={address.state} />
-                  <InfoCard label="Pincode" value={address.pincode} />
-                </div>
-              </div>
-            ))
-          ) : (
-            <p className="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-3 text-sm text-slate-600">
-              -
-            </p>
-          )}
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            <InfoCard label="Address" value={worker.address} />
+            <InfoCard label="City" value={worker.city} />
+            <InfoCard label="State" value={worker.state} />
+            <InfoCard label="Pincode" value={worker.pincode} />
+            <InfoCard label="Latitude" value={worker.latitude} />
+            <InfoCard label="Longitude" value={worker.longitude} />
+          </div>
         </div>
 
-        {/* Bank Details */}
         <div className="mb-8 rounded-2xl border border-slate-200 bg-white/90 p-4 md:p-5">
           <SectionHeader
             icon={Landmark}
-            emoji="🏦"
+            emoji="📌"
             title="Bank Details"
             subtitle="Payment Setup"
           />
-          {company.bank_details && company.bank_details.length > 0 ? (
-            company.bank_details.map((bank, index) => (
+          {worker.bank_details && worker.bank_details.length > 0 ? (
+            worker.bank_details.map((bank, index) => (
               <div
                 key={bank.id || index}
                 className="mb-4 rounded-xl border border-slate-200 bg-slate-50/70 p-4 last:mb-0"
               >
                 <h4 className="mb-3 text-sm font-semibold text-slate-700">
-                  Bank Account {index + 1} 💳
+                  Bank Account {index + 1}
                 </h4>
                 <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                  <InfoCard label="Bank Name" value={bank.bank_name} />
+                  <InfoCard
+                    label="Bank Name"
+                    value={bank.bank_name || bank.bankName}
+                  />
                   <InfoCard
                     label="Account Holder Name"
-                    value={bank.account_holder_name}
+                    value={bank.account_holder_name || bank.accountHolderName}
                   />
                   <InfoCard
                     label="Account Number"
-                    value={bank.account_number}
+                    value={bank.account_number || bank.accountNumber}
                   />
-                  <InfoCard label="IFSC Code" value={bank.ifsc_code} />
-                  <InfoCard label="UPI ID" value={bank.upi_id} />
+                  <InfoCard
+                    label="IFSC Code"
+                    value={bank.ifsc_code || bank.ifsc}
+                  />
+                  <InfoCard label="UPI ID" value={bank.upi_id || bank.upiId} />
                 </div>
               </div>
             ))
@@ -284,22 +348,21 @@ export default function ViewCompany() {
           )}
         </div>
 
-        {/* Documents */}
         <div className="mb-8 rounded-2xl border border-slate-200 bg-white/90 p-4 md:p-5">
           <SectionHeader
             icon={FileText}
-            emoji="📁"
+            emoji="📄"
             title="Documents"
             subtitle="Attachments"
           />
-          {company.documents && company.documents.length > 0 ? (
-            company.documents.map((doc, index) => (
+          {worker.documents && worker.documents.length > 0 ? (
+            worker.documents.map((doc, index) => (
               <div
                 key={doc.id || index}
                 className="mb-4 rounded-xl border border-slate-200 bg-slate-50/70 p-4 last:mb-0"
               >
                 <h4 className="mb-3 text-sm font-semibold text-slate-700">
-                  Document {index + 1} 📄
+                  Document {index + 1}
                 </h4>
                 <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                   <InfoCard label="Document Type" value={doc.document_type} />
@@ -332,7 +395,30 @@ export default function ViewCompany() {
           )}
         </div>
 
-        {/* Action Buttons */}
+        <div className="mb-8 rounded-2xl border border-slate-200 bg-white/90 p-4 md:p-5">
+          <SectionHeader
+            icon={Activity}
+            emoji="⚡"
+            title="Live Status"
+            subtitle="Realtime Flags"
+          />
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            <InfoCard label="Status" value={worker.status} />
+            <InfoCard
+              label="Is Active"
+              value={formatBoolean(worker.is_active)}
+            />
+            <InfoCard
+              label="Is Online"
+              value={formatBoolean(worker.is_online)}
+            />
+            <InfoCard
+              label="Is Available"
+              value={formatBoolean(worker.is_available)}
+            />
+          </div>
+        </div>
+
         <div className="mb-2 flex flex-wrap gap-3">
           <button
             onClick={handleApprove}
@@ -340,7 +426,7 @@ export default function ViewCompany() {
             className="flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-white transition duration-200 hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-60"
           >
             <CheckCircle size={18} />
-            {actionLoading === "approve" ? "Approving..." : "Approve ✅"}
+            {actionLoading === "approve" ? "Approving..." : "Approve"}
           </button>
           <button
             onClick={handleUnapprove}
@@ -348,7 +434,7 @@ export default function ViewCompany() {
             className="flex items-center gap-2 rounded-lg bg-yellow-600 px-4 py-2 text-white transition duration-200 hover:bg-yellow-700 disabled:cursor-not-allowed disabled:opacity-60"
           >
             <AlertTriangle size={18} />
-            {actionLoading === "unapprove" ? "Unapproving..." : "Unapprove ⚠️"}
+            {actionLoading === "unapprove" ? "Unapproving..." : "Unapprove"}
           </button>
           {/* <button
             onClick={handleReject}
@@ -356,7 +442,7 @@ export default function ViewCompany() {
             className="flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-white transition duration-200 hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
           >
             <XCircle size={18} />
-            {actionLoading === "reject" ? "Rejecting..." : "Reject ❌"}
+            {actionLoading === "reject" ? "Rejecting..." : "Reject"}
           </button> */}
         </div>
       </div>
