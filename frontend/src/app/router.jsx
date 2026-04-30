@@ -8,6 +8,8 @@ import Dashboard from "../pages/dashboard/Dashboard";
 // import ListCustomers from "../pages/customers/ListCustomers";
 import ListCompanies from "../pages/companies/ListCompanies";
 import ViewCompany from "../pages/companies/ViewCompany";
+import AddCompany from "../pages/companies/AddCompany";
+import UpdateCompany from "../pages/companies/UpdateCompany";
 import ListWorkers from "../pages/workers/ListWorkers";
 import ViewWorker from "../pages/workers/ViewWorker";
 import AddWorker from "../pages/workers/AddWorker";
@@ -42,7 +44,9 @@ export default function AppRouter() {
         <Route path="/customers" element={<ListCustomers />} />
         <Route path="/customers/add" element={<AddCustomer />} /> */}
         <Route path="/companies" element={<ListCompanies />} />
+        <Route path="/companies/add" element={<AddCompany />} />
         <Route path="/companies/:companyId" element={<ViewCompany />} />
+        <Route path="/companies/:companyId/edit" element={<UpdateCompany />} />
         <Route path="/workers" element={<ListWorkers />} />
         <Route path="/workers/add" element={<AddWorker />} />
         <Route path="/workers/:workerId" element={<ViewWorker />} />

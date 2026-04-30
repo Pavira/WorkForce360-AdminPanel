@@ -111,9 +111,17 @@ export const rejectWorker = async (workerId) => {
 };
 
 // Create worker (registration payload)
-export const createWorker = async (payload) => {
+export const createWorker = async (payload, firebaseUid) => {
   try {
-    const response = await api.post("/admin_panel_worker/register", payload);
+    const response = await api.post(
+      "/admin_panel_worker/create_new_worker",
+      payload,
+      {
+        params: {
+          firebase_uid: firebaseUid, // ✅ query param
+        },
+      },
+    );
     return extractApiData(response) || {};
   } catch (error) {
     throw safeApiError(error, "Failed to create worker.");
@@ -136,7 +144,7 @@ export const updateWorker = async (workerId, payload) => {
 // Skill categories list
 export const getCategorySkills = async () => {
   try {
-    const response = await api.get("/category_skills");
+    const response = await api.get("/industry_skill/category_skills");
     const data = extractApiData(response);
     return Array.isArray(data) ? data : [];
   } catch {
@@ -150,12 +158,30 @@ export const getCategorySkills = async () => {
   }
 };
 
+// Create Firebase user for worker
+export const createWorkerFirebaseUser = async (phoneNumber, countryCode) => {
+  try {
+    const response = await api.post(
+      "/admin_panel_worker/create-worker-firebase-user",
+      {
+        phone_number: phoneNumber,
+        country_code: countryCode,
+      },
+    );
+    return extractApiData(response) || {};
+  } catch (error) {
+    throw safeApiError(error, "Failed to create Firebase user.");
+  }
+};
+
 // Sub-category skills by category ID
 export const getSubCategorySkillsByCategoryId = async (categorySkillId) => {
   if (!categorySkillId) return [];
 
   try {
-    const response = await api.get(`/sub_category_skills/${categorySkillId}`);
+    const response = await api.get(
+      `/industry_skill/sub_category_skills/${categorySkillId}`,
+    );
     const data = extractApiData(response);
     return Array.isArray(data) ? data : [];
   } catch {

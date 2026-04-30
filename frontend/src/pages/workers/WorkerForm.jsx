@@ -8,32 +8,9 @@ import FileUploadComponent from "@/components/fileUpload/FileUploadComponent";
 
 const createEmptyCategory = () => ({
   categoryId: "",
-  experienceYears: "",
+  experienceYears: 0,
   subCategoryIds: [],
 });
-
-const emptyForm = {
-  name: "",
-  countryCode: "+91",
-  authNumber: "",
-  categories: [createEmptyCategory()],
-  address: "",
-  city: "",
-  state: "",
-  pincode: "",
-  latitude: "",
-  longitude: "",
-  bankName: "",
-  accountHolderName: "",
-  accountNumber: "",
-  ifscCode: "",
-  upiId: "",
-  // New document fields
-  logo: "",
-  aadhaar: "",
-  pan: "",
-  certificates: [],
-};
 
 const toInputValue = (value) => {
   if (value === null || value === undefined) return "";
@@ -42,10 +19,10 @@ const toInputValue = (value) => {
 
 const toOptionalString = (value) => {
   const text = String(value ?? "").trim();
-  return text ? text : null;
+  return text || null;
 };
 
-const toOptionalNumber = (value) => {
+const toNullableNumber = (value) => {
   const text = String(value ?? "").trim();
   if (!text) return null;
   const numericValue = Number(text);
@@ -57,35 +34,30 @@ const normalizeStringArray = (value) => {
   return value.map((item) => String(item ?? "").trim()).filter(Boolean);
 };
 
-const normalizeInitialData = (initialData = {}) => {
+const normalizeInitialData = (initialData = {}, firebaseUid = "") => {
   const categories = Array.isArray(initialData.categories)
     ? initialData.categories
         .map((category) => ({
           categoryId: toInputValue(
             category?.categoryId ?? category?.category_id ?? "",
           ),
-          experienceYears: toInputValue(
-            category?.experienceYears ?? category?.experience_years ?? "",
+          experienceYears: Number(
+            category?.experienceYears ?? category?.experience_years ?? 0,
           ),
           subCategoryIds: normalizeStringArray(
             category?.subCategoryIds ?? category?.sub_category_ids ?? [],
           ),
         }))
-        .filter(
-          (category) => category.categoryId || category.subCategoryIds.length,
-        )
+        .filter((category) => category.categoryId)
     : [];
 
-  const documents = Array.isArray(initialData?.documentInfo?.documents)
-    ? initialData.documentInfo.documents
-        .map((document) => ({
-          documentType: toInputValue(document?.documentType),
-          documentUrl: toInputValue(document?.documentUrl),
-        }))
-        .filter((document) => document.documentType || document.documentUrl)
-    : [];
+  const documentInfo = initialData?.documentInfo || {
+    logoUrl: initialData?.logoUrl || initialData?.logo_url || "",
+    documents: initialData?.documents || [],
+  };
 
   return {
+    firebase_uid: toInputValue(initialData.firebase_uid || firebaseUid),
     name: toInputValue(initialData.name),
     countryCode: toInputValue(initialData.countryCode || "+91"),
     authNumber: toInputValue(initialData.authNumber),
@@ -94,58 +66,51 @@ const normalizeInitialData = (initialData = {}) => {
     city: toInputValue(initialData.city),
     state: toInputValue(initialData.state),
     pincode: toInputValue(initialData.pincode),
-    latitude: toInputValue(initialData.latitude),
-    longitude: toInputValue(initialData.longitude),
-    bankName: toInputValue(initialData?.bankDetails?.bankName),
-    accountHolderName: toInputValue(
-      initialData?.bankDetails?.accountHolderName,
-    ),
-    accountNumber: toInputValue(initialData?.bankDetails?.accountNumber),
-    ifscCode: toInputValue(initialData?.bankDetails?.ifscCode),
-    upiId: toInputValue(initialData?.bankDetails?.upiId),
-    // New document fields
-    logo: toInputValue(initialData?.documentInfo?.logoUrl),
-    aadhaar: toInputValue(
-      initialData?.documentInfo?.documents?.find(
-        (d) => d.documentType === "aadhaar",
-      )?.documentUrl,
-    ),
-    pan: toInputValue(
-      initialData?.documentInfo?.documents?.find(
-        (d) => d.documentType === "pan",
-      )?.documentUrl,
-    ),
-    certificates: normalizeStringArray(
-      initialData?.documentInfo?.documents
-        ?.filter((d) => d.documentType === "certificate")
-        .map((d) => d.documentUrl) || [],
-    ),
+    latitude: toNullableNumber(initialData.latitude),
+    longitude: toNullableNumber(initialData.longitude),
+    bankDetails: {
+      bankName: toInputValue(initialData?.bankDetails?.bankName),
+      accountHolderName: toInputValue(
+        initialData?.bankDetails?.accountHolderName,
+      ),
+      accountNumber: toInputValue(initialData?.bankDetails?.accountNumber),
+      ifscCode: toInputValue(initialData?.bankDetails?.ifscCode),
+      upiId: toInputValue(initialData?.bankDetails?.upiId),
+    },
+    documentInfo: {
+      logoUrl: toInputValue(documentInfo?.logoUrl),
+      documents: Array.isArray(documentInfo?.documents)
+        ? documentInfo.documents
+            .map((document) => ({
+              documentType: toInputValue(
+                document?.documentType || document?.document_type,
+              ).toUpperCase(),
+              documentUrl: toInputValue(
+                document?.documentUrl || document?.document_url,
+              ),
+            }))
+            .filter((document) => document.documentType && document.documentUrl)
+        : [],
+    },
   };
 };
 
 const normalizeSkillOption = (item) => {
   if (!item || typeof item !== "object") return null;
-
   const id =
     item.id ||
     item.category_skill_id ||
     item.sub_category_id ||
     item.categoryId ||
     item.subCategoryId;
-
   const name =
     item.name ||
     item.category_skill_name ||
     item.sub_category_name ||
     item.categoryName ||
     item.subCategoryName;
-
   if (!id) return null;
-
-  return {
-    id: String(id),
-    name: String(name || id),
-  };
+  return { id: String(id), name: String(name || id) };
 };
 
 export default function WorkerForm({
@@ -155,9 +120,10 @@ export default function WorkerForm({
   submitLabel,
   onSubmit,
   enableSkillLookup = false,
+  firebaseUid,
 }) {
   const [form, setForm] = useState(() =>
-    initialData ? normalizeInitialData(initialData) : emptyForm,
+    normalizeInitialData(initialData || {}, firebaseUid || ""),
   );
   const [error, setError] = useState("");
   const [categoryOptions, setCategoryOptions] = useState([]);
@@ -165,6 +131,10 @@ export default function WorkerForm({
   const [categoryError, setCategoryError] = useState("");
   const [subCategoryOptionsMap, setSubCategoryOptionsMap] = useState({});
   const [subCategoryLoadingMap, setSubCategoryLoadingMap] = useState({});
+
+  useEffect(() => {
+    setForm(normalizeInitialData(initialData || {}, firebaseUid || ""));
+  }, [initialData, firebaseUid]);
 
   const primaryLabel =
     submitLabel || (mode === "edit" ? "Update Worker" : "Create Worker");
@@ -179,16 +149,14 @@ export default function WorkerForm({
 
   useEffect(() => {
     if (!enableSkillLookup) return;
-
     const fetchCategories = async () => {
       try {
         setCategoryLoading(true);
         setCategoryError("");
         const response = await getCategorySkills();
-        const options = response
-          .map((item) => normalizeSkillOption(item))
-          .filter(Boolean);
-        setCategoryOptions(options);
+        setCategoryOptions(
+          response.map((item) => normalizeSkillOption(item)).filter(Boolean),
+        );
       } catch (fetchError) {
         setCategoryError(
           fetchError?.message || "Failed to load skill categories.",
@@ -197,26 +165,25 @@ export default function WorkerForm({
         setCategoryLoading(false);
       }
     };
-
     fetchCategories();
   }, [enableSkillLookup]);
 
   const fetchSubCategories = useCallback(
     async (categoryId) => {
-      if (!enableSkillLookup || !categoryId) return;
-
-      if (subCategoryOptionsMap[categoryId]) return;
-
+      if (
+        !enableSkillLookup ||
+        !categoryId ||
+        subCategoryOptionsMap[categoryId]
+      )
+        return;
       try {
         setSubCategoryLoadingMap((prev) => ({ ...prev, [categoryId]: true }));
         const response = await getSubCategorySkillsByCategoryId(categoryId);
-        const options = response
-          .map((item) => normalizeSkillOption(item))
-          .filter(Boolean);
-
         setSubCategoryOptionsMap((prev) => ({
           ...prev,
-          [categoryId]: options,
+          [categoryId]: response
+            .map((item) => normalizeSkillOption(item))
+            .filter(Boolean),
         }));
       } catch {
         setSubCategoryOptionsMap((prev) => ({ ...prev, [categoryId]: [] }));
@@ -229,16 +196,13 @@ export default function WorkerForm({
 
   useEffect(() => {
     if (!enableSkillLookup) return;
-
-    const uniqueCategoryIds = Array.from(
+    Array.from(
       new Set(
         form.categories
           .map((category) => String(category.categoryId || "").trim())
           .filter(Boolean),
       ),
-    );
-
-    uniqueCategoryIds.forEach((categoryId) => {
+    ).forEach((categoryId) => {
       fetchSubCategories(categoryId);
     });
   }, [enableSkillLookup, fetchSubCategories, form.categories]);
@@ -247,47 +211,80 @@ export default function WorkerForm({
     setForm((prev) => ({ ...prev, [key]: value }));
   };
 
+  const upsertDocument = (documentType, documentUrl) => {
+    setForm((prev) => {
+      if (documentType === "logo") {
+        return {
+          ...prev,
+          documentInfo: {
+            ...prev.documentInfo,
+            logoUrl: String(documentUrl || ""),
+          },
+        };
+      }
+
+      const normalizedType = String(documentType || "").toUpperCase();
+      const existing = prev.documentInfo.documents.filter(
+        (doc) => doc.documentType !== normalizedType,
+      );
+      const normalizedUrls = []
+        .concat(documentUrl || [])
+        .map((url) => String(url || "").trim())
+        .filter(Boolean);
+      const nextDocuments = [
+        ...existing,
+        ...normalizedUrls.map((url) => ({
+          documentType: normalizedType,
+          documentUrl: url,
+        })),
+      ];
+
+      return {
+        ...prev,
+        documentInfo: {
+          ...prev.documentInfo,
+          documents: nextDocuments,
+        },
+      };
+    });
+  };
+
+  const categoryDocUrls = (type) =>
+    form.documentInfo.documents
+      .filter((doc) => doc.documentType === type)
+      .map((doc) => doc.documentUrl)
+      .filter(Boolean);
+
   const handleCategoryChange = (index, key, value) => {
     setForm((prev) => ({
       ...prev,
       categories: prev.categories.map((category, currentIndex) => {
         if (currentIndex !== index) return category;
-
         if (key === "categoryId") {
-          return {
-            ...category,
-            categoryId: value,
-            subCategoryIds: [],
-          };
+          return { ...category, categoryId: value, subCategoryIds: [] };
         }
-
+        if (key === "experienceYears") {
+          return { ...category, experienceYears: Number(value || 0) };
+        }
         return { ...category, [key]: value };
       }),
     }));
 
-    if (key === "categoryId" && value) {
-      fetchSubCategories(value);
-    }
+    if (key === "categoryId" && value) fetchSubCategories(value);
   };
 
   const handleSubCategoryToggle = (index, subCategoryId, checked) => {
     const safeId = String(subCategoryId || "").trim();
     if (!safeId) return;
-
     setForm((prev) => ({
       ...prev,
       categories: prev.categories.map((category, currentIndex) => {
         if (currentIndex !== index) return category;
-
         const existingIds = new Set(
           normalizeStringArray(category.subCategoryIds),
         );
-        if (checked) {
-          existingIds.add(safeId);
-        } else {
-          existingIds.delete(safeId);
-        }
-
+        if (checked) existingIds.add(safeId);
+        else existingIds.delete(safeId);
         return { ...category, subCategoryIds: Array.from(existingIds) };
       }),
     }));
@@ -315,77 +312,68 @@ export default function WorkerForm({
 
   const buildPayload = () => {
     const name = form.name.trim();
-    if (!name) {
-      throw new Error("Worker name is required.");
-    }
+    if (!name) throw new Error("Worker name is required.");
+
+    const authNumber = toOptionalString(form.authNumber);
+    if (!authNumber) throw new Error("Auth number is required.");
 
     const categories = form.categories
       .map((category) => {
-        const categoryId = category.categoryId.trim();
+        const categoryId = String(category.categoryId || "").trim();
         if (!categoryId) return null;
-
         return {
           categoryId,
-          experienceYears: toOptionalNumber(category.experienceYears),
+          experienceYears: Number.isFinite(Number(category.experienceYears))
+            ? Number(category.experienceYears)
+            : 0,
           subCategoryIds: normalizeStringArray(category.subCategoryIds),
         };
       })
       .filter(Boolean);
 
-    const bankDetails =
-      toOptionalString(form.bankName) ||
-      toOptionalString(form.accountHolderName) ||
-      toOptionalString(form.accountNumber) ||
-      toOptionalString(form.ifscCode) ||
-      toOptionalString(form.upiId)
-        ? {
-            bankName: toOptionalString(form.bankName),
-            accountHolderName: toOptionalString(form.accountHolderName),
-            accountNumber: toOptionalString(form.accountNumber),
-            ifscCode: toOptionalString(form.ifscCode),
-            upiId: toOptionalString(form.upiId),
-          }
-        : null;
+    if (categories.length === 0)
+      throw new Error("At least one category is required.");
 
-    // Build documents array from new fields
-    const documents = [];
-    if (toOptionalString(form.aadhaar)) {
-      documents.push({
-        documentType: "aadhaar",
-        documentUrl: toOptionalString(form.aadhaar),
-      });
-    }
-    if (toOptionalString(form.pan)) {
-      documents.push({
-        documentType: "pan",
-        documentUrl: toOptionalString(form.pan),
-      });
-    }
-    form.certificates.filter(Boolean).forEach((certUrl) => {
-      documents.push({ documentType: "certificate", documentUrl: certUrl });
-    });
+    const logoUrl = toOptionalString(form.documentInfo.logoUrl);
+    if (!logoUrl) throw new Error("Logo upload is required.");
 
-    const documentInfo =
-      toOptionalString(form.logo) || documents.length > 0
-        ? {
-            logoUrl: toOptionalString(form.logo),
-            documents,
-          }
-        : null;
+    const documents = (form.documentInfo.documents || [])
+      .map((doc) => ({
+        documentType: String(doc.documentType || "")
+          .toUpperCase()
+          .trim(),
+        documentUrl: toOptionalString(doc.documentUrl),
+      }))
+      .filter((doc) => doc.documentType && doc.documentUrl);
+
+    const safeFirebaseUid = toOptionalString(form.firebase_uid || firebaseUid);
+    if (!safeFirebaseUid) throw new Error("firebase_uid is required.");
 
     return {
+      // firebase_uid: safeFirebaseUid,
       name,
       countryCode: toOptionalString(form.countryCode),
-      authNumber: toOptionalString(form.authNumber),
+      authNumber,
       categories,
       address: toOptionalString(form.address),
       city: toOptionalString(form.city),
       state: toOptionalString(form.state),
       pincode: toOptionalString(form.pincode),
-      latitude: toOptionalNumber(form.latitude),
-      longitude: toOptionalNumber(form.longitude),
-      bankDetails,
-      documentInfo,
+      latitude: toNullableNumber(form.latitude),
+      longitude: toNullableNumber(form.longitude),
+      bankDetails: {
+        bankName: toOptionalString(form.bankDetails?.bankName),
+        accountHolderName: toOptionalString(
+          form.bankDetails?.accountHolderName,
+        ),
+        accountNumber: toOptionalString(form.bankDetails?.accountNumber),
+        ifscCode: toOptionalString(form.bankDetails?.ifscCode),
+        upiId: toOptionalString(form.bankDetails?.upiId),
+      },
+      documentInfo: {
+        logoUrl,
+        documents,
+      },
     };
   };
 
@@ -393,8 +381,7 @@ export default function WorkerForm({
     event.preventDefault();
     try {
       setError("");
-      const payload = buildPayload();
-      await onSubmit(payload);
+      await onSubmit(buildPayload());
     } catch (submitError) {
       setError(
         submitError?.message ||
@@ -409,12 +396,6 @@ export default function WorkerForm({
         <h3 className="text-base font-semibold text-gray-800">
           {sectionTitle}
         </h3>
-
-        {error ? (
-          <div className="mt-3 rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-700">
-            {error}
-          </div>
-        ) : null}
 
         <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
           <div className="md:col-span-1">
@@ -452,7 +433,7 @@ export default function WorkerForm({
 
           <div>
             <label className="mb-1 block text-sm font-medium text-gray-700">
-              Auth Number
+              Auth Number <span className="text-red-600">*</span>
             </label>
             <input
               type="text"
@@ -461,6 +442,118 @@ export default function WorkerForm({
                 handleFieldChange("authNumber", event.target.value)
               }
               placeholder="9876543210"
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-800 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200"
+              disabled={loading}
+              required
+            />
+          </div>
+        </div>
+      </div>
+
+      <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm md:p-5">
+        <h3 className="text-base font-semibold text-gray-800">Bank Details</h3>
+        <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">
+              Bank Name
+            </label>
+            <input
+              type="text"
+              value={form.bankDetails.bankName}
+              onChange={(event) =>
+                setForm((prev) => ({
+                  ...prev,
+                  bankDetails: {
+                    ...prev.bankDetails,
+                    bankName: event.target.value,
+                  },
+                }))
+              }
+              placeholder="HDFC Bank"
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-800 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200"
+              disabled={loading}
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">
+              Account Holder Name
+            </label>
+            <input
+              type="text"
+              value={form.bankDetails.accountHolderName}
+              onChange={(event) =>
+                setForm((prev) => ({
+                  ...prev,
+                  bankDetails: {
+                    ...prev.bankDetails,
+                    accountHolderName: event.target.value,
+                  },
+                }))
+              }
+              placeholder="Ravi Kumar"
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-800 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200"
+              disabled={loading}
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">
+              Account Number
+            </label>
+            <input
+              type="text"
+              value={form.bankDetails.accountNumber}
+              onChange={(event) =>
+                setForm((prev) => ({
+                  ...prev,
+                  bankDetails: {
+                    ...prev.bankDetails,
+                    accountNumber: event.target.value,
+                  },
+                }))
+              }
+              placeholder="123456789012"
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-800 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200"
+              disabled={loading}
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">
+              IFSC Code
+            </label>
+            <input
+              type="text"
+              value={form.bankDetails.ifscCode}
+              onChange={(event) =>
+                setForm((prev) => ({
+                  ...prev,
+                  bankDetails: {
+                    ...prev.bankDetails,
+                    ifscCode: event.target.value,
+                  },
+                }))
+              }
+              placeholder="HDFC0001234"
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-800 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200"
+              disabled={loading}
+            />
+          </div>
+          <div className="md:col-span-2">
+            <label className="mb-1 block text-sm font-medium text-gray-700">
+              UPI ID
+            </label>
+            <input
+              type="text"
+              value={form.bankDetails.upiId}
+              onChange={(event) =>
+                setForm((prev) => ({
+                  ...prev,
+                  bankDetails: {
+                    ...prev.bankDetails,
+                    upiId: event.target.value,
+                  },
+                }))
+              }
+              placeholder="name@upi"
               className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-800 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200"
               disabled={loading}
             />
@@ -479,8 +572,7 @@ export default function WorkerForm({
             className="inline-flex items-center gap-2 rounded-lg border border-purple-300 bg-purple-50 px-3 py-2 text-sm font-medium text-purple-700 transition hover:bg-purple-100"
             disabled={loading}
           >
-            <Plus size={16} />
-            Add Category
+            <Plus size={16} /> Add Category
           </button>
         </div>
 
@@ -509,7 +601,6 @@ export default function WorkerForm({
                     <label className="mb-1 block text-sm font-medium text-gray-700">
                       Skill Category
                     </label>
-
                     {enableSkillLookup ? (
                       <select
                         value={category.categoryId}
@@ -545,7 +636,7 @@ export default function WorkerForm({
                             event.target.value,
                           )
                         }
-                        placeholder="123e4567-e89b-12d3-a456-426614174000"
+                        placeholder="category id"
                         className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-800 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200"
                         disabled={loading}
                       />
@@ -577,14 +668,9 @@ export default function WorkerForm({
                     <label className="mb-1 block text-sm font-medium text-gray-700">
                       Sub Categories
                     </label>
-
                     {enableSkillLookup ? (
                       <div
-                        className={`max-h-36 overflow-auto rounded-lg border border-gray-300 bg-white p-2 ${
-                          loading || !selectedCategoryId || isSubCategoryLoading
-                            ? "opacity-60"
-                            : ""
-                        }`}
+                        className={`max-h-36 overflow-auto rounded-lg border border-gray-300 bg-white p-2 ${loading || !selectedCategoryId || isSubCategoryLoading ? "opacity-60" : ""}`}
                       >
                         {subCategoryOptions.length === 0 ? (
                           <p className="text-xs text-gray-500">
@@ -597,7 +683,6 @@ export default function WorkerForm({
                             const checked = normalizeStringArray(
                               category.subCategoryIds,
                             ).includes(String(option.id));
-
                             return (
                               <label
                                 key={option.id}
@@ -645,14 +730,6 @@ export default function WorkerForm({
                         disabled={loading}
                       />
                     )}
-
-                    {enableSkillLookup ? (
-                      <p className="mt-1 text-xs text-gray-500">
-                        {isSubCategoryLoading
-                          ? "Loading sub categories..."
-                          : "You can select multiple sub categories."}
-                      </p>
-                    ) : null}
                   </div>
                 </div>
 
@@ -663,8 +740,7 @@ export default function WorkerForm({
                     className="inline-flex items-center gap-2 rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-sm font-medium text-red-700 transition hover:bg-red-100"
                     disabled={loading}
                   >
-                    <Trash2 size={16} />
-                    Remove
+                    <Trash2 size={16} /> Remove
                   </button>
                 </div>
               </div>
@@ -691,7 +767,6 @@ export default function WorkerForm({
               disabled={loading}
             />
           </div>
-
           <div>
             <label className="mb-1 block text-sm font-medium text-gray-700">
               City
@@ -707,7 +782,6 @@ export default function WorkerForm({
               disabled={loading}
             />
           </div>
-
           <div>
             <label className="mb-1 block text-sm font-medium text-gray-700">
               State
@@ -723,7 +797,6 @@ export default function WorkerForm({
               disabled={loading}
             />
           </div>
-
           <div>
             <label className="mb-1 block text-sm font-medium text-gray-700">
               Pincode
@@ -739,7 +812,6 @@ export default function WorkerForm({
               disabled={loading}
             />
           </div>
-
           <div>
             <label className="mb-1 block text-sm font-medium text-gray-700">
               Latitude
@@ -747,7 +819,7 @@ export default function WorkerForm({
             <input
               type="number"
               step="any"
-              value={form.latitude}
+              value={toInputValue(form.latitude)}
               onChange={(event) =>
                 handleFieldChange("latitude", event.target.value)
               }
@@ -756,7 +828,6 @@ export default function WorkerForm({
               disabled={loading}
             />
           </div>
-
           <div>
             <label className="mb-1 block text-sm font-medium text-gray-700">
               Longitude
@@ -764,7 +835,7 @@ export default function WorkerForm({
             <input
               type="number"
               step="any"
-              value={form.longitude}
+              value={toInputValue(form.longitude)}
               onChange={(event) =>
                 handleFieldChange("longitude", event.target.value)
               }
@@ -777,132 +848,46 @@ export default function WorkerForm({
       </div>
 
       <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm md:p-5">
-        <h3 className="text-base font-semibold text-gray-800">Bank Details</h3>
-        <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
-          <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">
-              Bank Name
-            </label>
-            <input
-              type="text"
-              value={form.bankName}
-              onChange={(event) =>
-                handleFieldChange("bankName", event.target.value)
-              }
-              placeholder="HDFC Bank"
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-800 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200"
-              disabled={loading}
-            />
-          </div>
-
-          <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">
-              Account Holder Name
-            </label>
-            <input
-              type="text"
-              value={form.accountHolderName}
-              onChange={(event) =>
-                handleFieldChange("accountHolderName", event.target.value)
-              }
-              placeholder="Sangeetha S"
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-800 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200"
-              disabled={loading}
-            />
-          </div>
-
-          <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">
-              Account Number
-            </label>
-            <input
-              type="text"
-              value={form.accountNumber}
-              onChange={(event) =>
-                handleFieldChange("accountNumber", event.target.value)
-              }
-              placeholder="1234567890"
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-800 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200"
-              disabled={loading}
-            />
-          </div>
-
-          <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">
-              IFSC Code
-            </label>
-            <input
-              type="text"
-              value={form.ifscCode}
-              onChange={(event) =>
-                handleFieldChange("ifscCode", event.target.value)
-              }
-              placeholder="HDFC0001234"
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-800 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200"
-              disabled={loading}
-            />
-          </div>
-
-          <div className="md:col-span-2">
-            <label className="mb-1 block text-sm font-medium text-gray-700">
-              UPI ID
-            </label>
-            <input
-              type="text"
-              value={form.upiId}
-              onChange={(event) =>
-                handleFieldChange("upiId", event.target.value)
-              }
-              placeholder="name@bank"
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-800 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200"
-              disabled={loading}
-            />
-          </div>
-        </div>
-      </div>
-
-      <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm md:p-5">
         <h3 className="text-base font-semibold text-gray-800">Documents</h3>
-        <p className="mt-1 text-sm text-gray-500">
-          Upload required documents. Drag and drop or click to browse.
-        </p>
-
         <div className="mt-4 grid grid-cols-1 gap-6 md:grid-cols-2">
-          {/* Logo Upload */}
           <FileUploadComponent
             documentType="logo"
-            value={form.logo}
-            onChange={(value) => handleFieldChange("logo", value)}
+            value={form.documentInfo.logoUrl}
+            onChange={(value) => upsertDocument("logo", value)}
+            firebaseUid={form.firebase_uid || firebaseUid}
             disabled={loading}
           />
-
-          {/* Aadhaar Card Upload */}
           <FileUploadComponent
-            documentType="aadhaar"
-            value={form.aadhaar}
-            onChange={(value) => handleFieldChange("aadhaar", value)}
+            documentType="AC"
+            value={categoryDocUrls("AC")}
+            onChange={(value) => upsertDocument("AC", value)}
+            firebaseUid={form.firebase_uid || firebaseUid}
             disabled={loading}
           />
-
-          {/* PAN Card Upload */}
           <FileUploadComponent
-            documentType="pan"
-            value={form.pan}
-            onChange={(value) => handleFieldChange("pan", value)}
+            documentType="PAN"
+            value={categoryDocUrls("PAN")}
+            onChange={(value) => upsertDocument("PAN", value)}
+            firebaseUid={form.firebase_uid || firebaseUid}
             disabled={loading}
           />
-
-          {/* Certificates Upload (Multiple) */}
           <div className="md:col-span-2">
             <FileUploadComponent
-              documentType="certificate"
-              value={form.certificates}
-              onChange={(value) => handleFieldChange("certificates", value)}
+              documentType="CR"
+              value={categoryDocUrls("CR")}
+              onChange={(value) => upsertDocument("CR", value)}
+              firebaseUid={form.firebase_uid || firebaseUid}
               disabled={loading}
             />
           </div>
         </div>
       </div>
+
+      {error ? (
+        <div className="mt-3 rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-700">
+          {error}
+        </div>
+      ) : null}
 
       <div className="flex flex-wrap items-center justify-end gap-3">
         <button

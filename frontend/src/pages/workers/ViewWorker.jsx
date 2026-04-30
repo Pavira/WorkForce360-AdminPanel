@@ -174,13 +174,13 @@ export default function ViewWorker() {
           subtitle="Clean view of all worker information"
           action={
             <div className="flex flex-wrap items-center gap-2">
-              {/* <button
+              <button
                 onClick={() => navigate(`/workers/${workerId}/edit`)}
                 className="inline-flex items-center gap-2 rounded-lg border border-purple-300 bg-purple-50 px-4 py-2 text-sm font-semibold text-purple-700 transition hover:bg-purple-100"
               >
                 <Pencil size={16} />
                 Edit
-              </button> */}
+              </button>
               <button
                 onClick={() => navigate("/workers")}
                 className="inline-flex items-center gap-2 rounded-lg border border-red-600 bg-red-500 px-4 py-2 text-sm font-bold text-white transition duration-200 hover:bg-red-600 active:scale-95"

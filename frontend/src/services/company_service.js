@@ -114,3 +114,71 @@ export const rejectCompany = async (companyId) => {
     throw safeApiError(error, "Failed to reject company.");
   }
 };
+
+// Create company profile
+export const createCompany = async (payload, firebaseUid) => {
+  try {
+    const response = await api.post(
+      "/admin_panel_company/create_new_company",
+      payload,
+      {
+        params: {
+          firebase_uid: firebaseUid,
+        },
+      },
+    );
+    return extractApiData(response) || {};
+  } catch (error) {
+    throw safeApiError(error, "Failed to create company.");
+  }
+};
+
+// Create Firebase user for company onboarding
+export const createCompanyFirebaseUser = async (phoneNumber, countryCode) => {
+  try {
+    const response = await api.post(
+      "/admin_panel_company/create-company-firebase-user",
+      {
+        phone_number: phoneNumber,
+        country_code: countryCode,
+      },
+    );
+    return extractApiData(response) || {};
+  } catch (error) {
+    throw safeApiError(error, "Failed to create company Firebase user.");
+  }
+};
+
+// Update company profile
+export const updateCompany = async (companyId, payload) => {
+  try {
+    const response = await api.patch(
+      `/admin_panel_company/${companyId}`,
+      payload,
+    );
+    return extractApiData(response) || {};
+  } catch (error) {
+    throw safeApiError(error, "Failed to update company.");
+  }
+};
+
+// Industry list (supports multiple backend route variants)
+export const getIndustries = async () => {
+  const endpoints = [
+    "/industry_types",
+    "/industry_skill/industry_types",
+    "/industry/industry_types",
+  ];
+
+  for (const endpoint of endpoints) {
+    try {
+      const response = await api.get(endpoint);
+      const data = extractApiData(response);
+      if (Array.isArray(data)) return data;
+    } catch {
+      // continue to next fallback endpoint
+    }
+  }
+
+  return [];
+};

@@ -3,8 +3,9 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import DashboardLayout from "../../app/layout/DashboardLayout";
 import PageHeader from "@/components/ui/PageHeader";
-import WorkerForm from "./WorkerForm";
-import { createWorker } from "@/services/workerService";
+import CompanyForm from "./CompanyForm";
+import { createCompany, getIndustries } from "@/services/company_service";
+import { useEffect } from "react";
 
 const stripCountryCodeFromPhone = (rawPhone = "", rawCountryCode = "") => {
   const phone = String(rawPhone || "").trim();
@@ -16,34 +17,37 @@ const stripCountryCodeFromPhone = (rawPhone = "", rawCountryCode = "") => {
   return phone;
 };
 
-export default function AddWorker() {
+export default function AddCompany() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(false);
+  const [industryOptions, setIndustryOptions] = useState([]);
+  const [industryLoading, setIndustryLoading] = useState(true);
 
-  // Get query params from URL
   const firebaseUid = searchParams.get("firebase_uid") || "";
   const phoneNumber = searchParams.get("phone_number") || "";
   const countryCode = searchParams.get("country_code") || "+91";
 
+  useEffect(() => {
+    const fetchIndustries = async () => {
+      try {
+        setIndustryLoading(true);
+        const response = await getIndustries();
+        setIndustryOptions(Array.isArray(response) ? response : []);
+      } finally {
+        setIndustryLoading(false);
+      }
+    };
+    fetchIndustries();
+  }, []);
+
   const handleSubmit = async (payload) => {
     try {
       setLoading(true);
-
-      // Persist exactly what user entered in countryCode, and keep authNumber without country code.
-      const payloadWithFirebase = {
-        ...payload,
-        countryCode: payload.countryCode,
-        authNumber: stripCountryCodeFromPhone(
-          payload.authNumber,
-          payload.countryCode,
-        ),
-      };
-
-      await createWorker(payloadWithFirebase, firebaseUid);
-      navigate("/workers");
+      await createCompany(payload, firebaseUid);
+      navigate("/companies");
     } catch (error) {
-      console.error("Failed to create worker:", error);
+      console.error("Failed to create company:", error);
       throw error;
     } finally {
       setLoading(false);
@@ -54,11 +58,11 @@ export default function AddWorker() {
     <DashboardLayout>
       <div className="rounded-2xl bg-white p-4 shadow-lg md:p-6">
         <PageHeader
-          title="Add Worker"
-          subtitle="Create a new worker profile"
+          title="Add Company"
+          subtitle="Create a new company profile"
           action={
             <button
-              onClick={() => navigate("/workers")}
+              onClick={() => navigate("/companies")}
               className="inline-flex items-center gap-2 rounded-lg border border-red-600 bg-red-500 px-4 py-2 text-sm font-bold text-white transition duration-200 hover:bg-red-600 active:scale-95"
             >
               <ArrowLeft size={16} />
@@ -67,16 +71,15 @@ export default function AddWorker() {
           }
         />
 
-        <WorkerForm
+        <CompanyForm
           mode="create"
           loading={loading}
           onSubmit={handleSubmit}
-          enableSkillLookup
           firebaseUid={firebaseUid}
           initialData={
             phoneNumber
               ? {
-                  authNumber: stripCountryCodeFromPhone(
+                  authPhone: stripCountryCodeFromPhone(
                     phoneNumber,
                     countryCode,
                   ),
@@ -84,6 +87,8 @@ export default function AddWorker() {
                 }
               : undefined
           }
+          industries={industryOptions}
+          industriesLoading={industryLoading}
         />
       </div>
     </DashboardLayout>

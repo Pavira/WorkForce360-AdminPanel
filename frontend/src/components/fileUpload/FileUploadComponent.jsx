@@ -10,6 +10,13 @@ import {
 } from "lucide-react";
 import api from "@/config/axios";
 
+const BACKEND_DOCUMENT_TYPE_MAP = {
+  logo: "logo",
+  registration_certificate: "CRC",
+  gst_certificate: "GST",
+  id_proof: "IDP",
+};
+
 // File type configurations
 const FILE_CONFIG = {
   logo: {
@@ -19,22 +26,57 @@ const FILE_CONFIG = {
     maxSizeMB: 5,
     multiple: false,
   },
-  aadhaar: {
+  AC: {
     label: "Aadhaar Card",
     accept: "application/pdf,image/jpeg,image/png,image/jpg,image/webp",
     extensions: [".pdf", ".jpg", ".jpeg", ".png", ".webp"],
     maxSizeMB: 5,
-    multiple: false,
+    multiple: true,
   },
-  pan: {
+  PAN: {
     label: "PAN Card",
     accept: "application/pdf,image/jpeg,image/png,image/jpg,image/webp",
     extensions: [".pdf", ".jpg", ".jpeg", ".png", ".webp"],
     maxSizeMB: 5,
-    multiple: false,
+    multiple: true,
   },
-  certificate: {
+  CR: {
     label: "Certificates",
+    accept: "application/pdf,image/jpeg,image/png,image/jpg,image/webp",
+    extensions: [".pdf", ".jpg", ".jpeg", ".png", ".webp"],
+    maxSizeMB: 5,
+    multiple: true,
+  },
+  RC: {
+    label: "Registration Certificate",
+    accept: "application/pdf,image/jpeg,image/png,image/jpg,image/webp",
+    extensions: [".pdf", ".jpg", ".jpeg", ".png", ".webp"],
+    maxSizeMB: 5,
+    multiple: true,
+  },
+  GST: {
+    label: "GST Certificate",
+    accept: "application/pdf,image/jpeg,image/png,image/jpg,image/webp",
+    extensions: [".pdf", ".jpg", ".jpeg", ".png", ".webp"],
+    maxSizeMB: 5,
+    multiple: true,
+  },
+  ID: {
+    label: "ID Proof (PAN/Aadhaar)",
+    accept: "application/pdf,image/jpeg,image/png,image/jpg,image/webp",
+    extensions: [".pdf", ".jpg", ".jpeg", ".png", ".webp"],
+    maxSizeMB: 5,
+    multiple: true,
+  },
+  CRC: {
+    label: "Registration Certificate",
+    accept: "application/pdf,image/jpeg,image/png,image/jpg,image/webp",
+    extensions: [".pdf", ".jpg", ".jpeg", ".png", ".webp"],
+    maxSizeMB: 5,
+    multiple: true,
+  },
+  IDP: {
+    label: "ID Proof (PAN/Aadhaar)",
     accept: "application/pdf,image/jpeg,image/png,image/jpg,image/webp",
     extensions: [".pdf", ".jpg", ".jpeg", ".png", ".webp"],
     maxSizeMB: 5,
@@ -47,12 +89,13 @@ const getFileIcon = (fileType) => {
   return FileText;
 };
 
-const formatFileSize = (bytes) => {
-  if (bytes === 0) return "0 Bytes";
-  const k = 1024;
-  const sizes = ["Bytes", "KB", "MB", "GB"];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
+const getPreviewType = (fileUrl = "") => {
+  const safeUrl = String(fileUrl || "").toLowerCase();
+  if ([".jpg", ".jpeg", ".png", ".webp"].some((ext) => safeUrl.includes(ext))) {
+    return "image";
+  }
+  if (safeUrl.includes(".pdf")) return "pdf";
+  return "other";
 };
 
 const validateFile = (file, config) => {
@@ -76,15 +119,27 @@ export default function FileUploadComponent({
   documentType,
   value,
   onChange,
+  firebaseUid,
   disabled = false,
 }) {
-  const config = FILE_CONFIG[documentType];
+  const inputType = String(documentType || "").trim();
+  const mappedBackendType =
+    BACKEND_DOCUMENT_TYPE_MAP[inputType] || inputType.toUpperCase();
+  const config =
+    FILE_CONFIG[mappedBackendType] || FILE_CONFIG[inputType] || null;
   const [isDragging, setIsDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const fileInputRef = useRef(null);
+
+  if (!config) {
+    console.error(
+      `FileUploadComponent: unsupported documentType '${documentType}'.`,
+    );
+    return null;
+  }
 
   // Parse value to array for multiple files
   const currentFiles = Array.isArray(value) ? value : value ? [value] : [];
@@ -169,10 +224,25 @@ export default function FileUploadComponent({
     setUploadProgress(0);
 
     try {
+      if (!firebaseUid) {
+        throw new Error("Missing firebase_uid for upload");
+      }
+
+      const fileExtension = file.name.split(".").pop()?.toLowerCase();
+      if (!fileExtension) {
+        throw new Error("Invalid file extension");
+      }
+
       // Step 1: Get pre-signed upload URL
-      const uploadUrlResponse = await api.put("/worker/documents/upload-url", {
-        file_type: documentType,
-      });
+      const uploadUrlResponse = await api.put(
+        "/admin_panel_worker/documents/upload-url",
+        { file_type: fileExtension },
+        {
+          params: {
+            firebase_uid: firebaseUid,
+          },
+        },
+      );
 
       const { upload_url, file_url } = uploadUrlResponse.data.data;
 
@@ -238,7 +308,7 @@ export default function FileUploadComponent({
     setSuccess("");
   };
 
-  const FileIcon = getFileIcon(documentType);
+  const FileIcon = getFileIcon(inputType);
 
   return (
     <div className="space-y-2">
@@ -324,34 +394,57 @@ export default function FileUploadComponent({
             if (!fileUrl) return null;
 
             const fileName = fileUrl.split("/").pop() || `File ${index + 1}`;
+            const previewType = getPreviewType(fileUrl);
 
             return (
               <div
                 key={index}
-                className="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 p-3"
+                className="rounded-lg border border-gray-200 bg-gray-50 p-3"
               >
-                <div className="flex items-center gap-3 min-w-0">
-                  <FileIcon className="h-5 w-5 flex-shrink-0 text-gray-500" />
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-medium text-gray-700">
-                      {fileName.length > 30
-                        ? `...${fileName.slice(-27)}`
-                        : fileName}
-                    </p>
-                    <p className="text-xs text-gray-500 truncate">{fileUrl}</p>
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <FileIcon className="h-5 w-5 flex-shrink-0 text-gray-500" />
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium text-gray-700">
+                        {fileName.length > 30
+                          ? `...${fileName.slice(-27)}`
+                          : fileName}
+                      </p>
+                      <p className="truncate text-xs text-gray-500">
+                        {fileUrl}
+                      </p>
+                    </div>
                   </div>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleRemoveFile(index);
+                    }}
+                    disabled={disabled || uploading}
+                    className="ml-2 flex-shrink-0 rounded-lg p-1 text-gray-500 hover:bg-red-100 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
                 </div>
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleRemoveFile(index);
-                  }}
-                  disabled={disabled || uploading}
-                  className="ml-2 flex-shrink-0 rounded-lg p-1 text-gray-500 hover:bg-red-100 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  <X className="h-4 w-4" />
-                </button>
+
+                {previewType === "image" ? (
+                  <img
+                    src={fileUrl}
+                    alt={fileName}
+                    className="mt-3 max-h-48 w-auto rounded border border-gray-200 bg-white object-contain"
+                  />
+                ) : null}
+
+                {previewType === "pdf" ? (
+                  <div className="mt-3">
+                    <embed
+                      src={fileUrl}
+                      type="application/pdf"
+                      className="h-56 w-full rounded border border-gray-200 bg-white"
+                    />
+                  </div>
+                ) : null}
               </div>
             );
           })}
@@ -361,5 +454,5 @@ export default function FileUploadComponent({
   );
 }
 
-// Export file configurations for external use
-export { FILE_CONFIG };
+// Export file configurations and backend mapping for external use
+export { FILE_CONFIG, BACKEND_DOCUMENT_TYPE_MAP };

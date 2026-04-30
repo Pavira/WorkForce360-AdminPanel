@@ -33,16 +33,24 @@ const mapWorkerToFormData = (worker) => {
     bankDetails: {
       bankName: primaryBank?.bank_name || primaryBank?.bankName || "",
       accountHolderName:
-        primaryBank?.account_holder_name || primaryBank?.accountHolderName || "",
-      accountNumber: primaryBank?.account_number || primaryBank?.accountNumber || "",
-      ifscCode: primaryBank?.ifsc_code || primaryBank?.ifscCode || primaryBank?.ifsc || "",
+        primaryBank?.account_holder_name ||
+        primaryBank?.accountHolderName ||
+        "",
+      accountNumber:
+        primaryBank?.account_number || primaryBank?.accountNumber || "",
+      ifscCode:
+        primaryBank?.ifsc_code ||
+        primaryBank?.ifscCode ||
+        primaryBank?.ifsc ||
+        "",
       upiId: primaryBank?.upi_id || primaryBank?.upiId || "",
     },
     documentInfo: {
       logoUrl: worker?.logo_url || worker?.logoUrl || "",
       documents: Array.isArray(worker?.documents)
         ? worker.documents.map((document) => ({
-            documentType: document?.document_type || document?.documentType || "",
+            documentType:
+              document?.document_type || document?.documentType || "",
             documentUrl: document?.document_url || document?.documentUrl || "",
           }))
         : [],
@@ -141,6 +149,8 @@ export default function UpdateWorker() {
           loading={submitting}
           submitLabel="Save Changes"
           onSubmit={handleSubmit}
+          enableSkillLookup
+          firebaseUid={worker?.firebase_uid || worker?.firebaseUid || ""}
         />
       </div>
     </DashboardLayout>

@@ -1,9 +1,11 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronLeft, ChevronRight, Search } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Search, X } from "lucide-react";
 import DashboardLayout from "../../app/layout/DashboardLayout";
 import PageHeader from "@/components/ui/PageHeader";
 import StatusFilterSection from "@/components/ui/StatusFilterSection";
 import useCompaniesList from "@/hooks/useCompaniesList";
+import { createCompanyFirebaseUser } from "@/services/company_service";
 
 const SEARCH_OPTIONS = [
   { label: "Company Name", value: "company_name" },
@@ -13,6 +15,11 @@ const SEARCH_OPTIONS = [
 
 export default function ListCompanies() {
   const navigate = useNavigate();
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [countryCode, setCountryCode] = useState("+91");
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [modalError, setModalError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const {
     items,
     totalCount,
@@ -39,10 +46,76 @@ export default function ListCompanies() {
     { label: "Draft", value: "draft", count: draftCount },
   ];
 
+  const COUNTRY_CODES = [
+    { code: "+91", name: "India" },
+    { code: "+1", name: "USA" },
+    { code: "+44", name: "UK" },
+    { code: "+61", name: "Australia" },
+  ];
+
+  const validatePhoneNumber = (phone) => {
+    const phoneRegex = /^\d{10,15}$/;
+    const cleaned = String(phone || "").replace(/\s/g, "");
+    return phoneRegex.test(cleaned);
+  };
+
+  const handleRegister = async () => {
+    setModalError("");
+
+    if (!phoneNumber.trim()) {
+      setModalError("Please enter a phone number.");
+      return;
+    }
+    if (!validatePhoneNumber(phoneNumber)) {
+      setModalError("Invalid phone number format. Enter 10-15 digits.");
+      return;
+    }
+
+    const fullPhoneNumber = `${countryCode}${phoneNumber}`;
+
+    setIsLoading(true);
+    try {
+      const response = await createCompanyFirebaseUser(
+        fullPhoneNumber,
+        countryCode,
+      );
+      setIsModalOpen(false);
+      setPhoneNumber("");
+      navigate(
+        `/companies/add?firebase_uid=${encodeURIComponent(response.firebase_uid || response.uid)}&phone_number=${encodeURIComponent(response.phone_number || fullPhoneNumber)}&country_code=${encodeURIComponent(countryCode)}`,
+      );
+    } catch (err) {
+      setModalError(
+        err.message || "Failed to create company. Please try again.",
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setPhoneNumber("");
+    setCountryCode("+91");
+    setModalError("");
+  };
+
   return (
     <DashboardLayout>
       <div className="rounded-2xl bg-white p-4 shadow-lg md:p-6">
-        <PageHeader title="Companies" subtitle="Manage company details" />
+        <PageHeader
+          title="Companies"
+          subtitle="Manage company details"
+          action={
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="inline-flex items-center gap-2 rounded-lg bg-purple-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-purple-700"
+            >
+              <Plus size={16} />
+              Add Company
+            </button>
+          }
+        />
 
         <StatusFilterSection
           summaryLabel="Total Entries"
@@ -222,6 +295,80 @@ export default function ListCompanies() {
           </div>
         </div>
       </div>
+
+      {isModalOpen ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-xl font-semibold text-gray-800">
+                Add Company
+              </h2>
+              <button
+                onClick={handleCloseModal}
+                className="rounded-lg p-1 text-gray-500 hover:bg-gray-100"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="mb-4">
+              <label className="mb-2 block text-sm font-medium text-gray-700">
+                Phone Number
+              </label>
+              <div className="flex gap-2">
+                <div className="w-28 shrink-0">
+                  <select
+                    value={countryCode}
+                    onChange={(event) => setCountryCode(event.target.value)}
+                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-800 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200"
+                  >
+                    {COUNTRY_CODES.map((country) => (
+                      <option key={country.code} value={country.code}>
+                        {country.code} ({country.name})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <input
+                  type="tel"
+                  value={phoneNumber}
+                  onChange={(event) => {
+                    setPhoneNumber(event.target.value);
+                    setModalError("");
+                  }}
+                  placeholder="9876543210"
+                  className="flex-1 rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-800 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200"
+                />
+              </div>
+              <p className="mt-1 text-xs text-gray-500">
+                Example: +91 9876543210
+              </p>
+            </div>
+
+            {modalError ? (
+              <div className="mb-4 rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-700">
+                {modalError}
+              </div>
+            ) : null}
+
+            <div className="flex gap-3">
+              <button
+                onClick={handleCloseModal}
+                className="flex-1 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleRegister}
+                disabled={isLoading}
+                className="flex-1 rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-purple-700 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {isLoading ? "Processing..." : "Register"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </DashboardLayout>
   );
 }
