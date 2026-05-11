@@ -208,6 +208,9 @@ export default function ListCompanies() {
                     <th className="px-5 py-3 text-left text-sm font-semibold text-gray-700">
                       Status
                     </th>
+                    <th className="px-5 py-3 text-left text-sm font-semibold text-gray-700">
+                      Action
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -234,6 +237,19 @@ export default function ListCompanies() {
                         </td>
                         <td className="px-5 py-3 text-sm text-gray-700">
                           {company.status || "-"}
+                        </td>
+                        <td className="px-5 py-3 text-sm text-gray-700">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate(`/add-job/${company.id}`, {
+                                state: { company },
+                              });
+                            }}
+                            className="inline-flex items-center gap-1 rounded-lg bg-blue-600 px-3 py-1 text-sm font-medium text-white transition hover:bg-blue-700"
+                          >
+                            Create Job
+                          </button>
                         </td>
                       </tr>
                     );

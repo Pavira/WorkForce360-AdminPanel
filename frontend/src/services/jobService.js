@@ -115,5 +115,32 @@ export const assignJobToWorker = async (jobId, workerId) => {
   }
 };
 
+export const createJob = async (payload) => {
+  const normalizedPayload = { ...(payload || {}) };
+  delete normalizedPayload.addressType;
+  delete normalizedPayload.selectedAddressIndex;
+
+  const parsedLatitude = Number(normalizedPayload.latitude);
+  const parsedLongitude = Number(normalizedPayload.longitude);
+
+  if (Number.isFinite(parsedLatitude)) {
+    normalizedPayload.latitude = parsedLatitude;
+  }
+
+  if (Number.isFinite(parsedLongitude)) {
+    normalizedPayload.longitude = parsedLongitude;
+  }
+
+  try {
+    const response = await api.post(
+      "/admin_panel_job/create_job_post",
+      normalizedPayload,
+    );
+    return extractApiData(response) || {};
+  } catch (error) {
+    throw safeApiError(error, "Failed to create job.");
+  }
+};
+
 // Backward-compatible alias used in ViewJob.
 export const assignWorkerToJob = assignJobToWorker;

@@ -16,6 +16,7 @@ import AddWorker from "../pages/workers/AddWorker";
 import UpdateWorker from "../pages/workers/UpdateWorker";
 import ListJobs from "../pages/jobs/ListJobs";
 import ViewJob from "../pages/jobs/ViewJob";
+import AddJob from "../pages/jobs/AddJob";
 // import AddCustomer from "../pages/customers/AddCustomer";
 // import UpdateCustomer from "../pages/customers/UpdateCustomer";
 // import ListItems from "../pages/items/ListItems";
@@ -53,6 +54,7 @@ export default function AppRouter() {
         <Route path="/workers/:workerId/edit" element={<UpdateWorker />} />
         <Route path="/jobs" element={<ListJobs />} />
         <Route path="/jobs/:jobId" element={<ViewJob />} />
+        <Route path="/add-job/:companyId" element={<AddJob />} />
         {/* <Route path="/customers/:customerId" element={<UpdateCustomer />} /> */}
         {/* <Route path="/items" element={<ListItems />} />
         <Route path="/items/add" element={<AddItem />} />

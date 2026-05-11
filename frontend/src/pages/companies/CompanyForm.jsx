@@ -749,6 +749,15 @@ export default function CompanyForm({
               disabled={loading}
             />
           </div>
+          <div className="md:col-span-2">
+            <FileUploadComponent
+              documentType="CPHOTO"
+              value={docUrlsForType("CPHOTO")}
+              onChange={(value) => setDocumentsByType("CPHOTO", value)}
+              firebaseUid={form.firebase_uid || firebaseUid}
+              disabled={loading}
+            />
+          </div>
         </div>
       </div>
 

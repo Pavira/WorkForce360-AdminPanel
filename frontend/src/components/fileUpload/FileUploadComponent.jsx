@@ -15,6 +15,7 @@ const BACKEND_DOCUMENT_TYPE_MAP = {
   registration_certificate: "CRC",
   gst_certificate: "GST",
   id_proof: "IDP",
+  company_photos: "CPHOTO",
 };
 
 // File type configurations
@@ -79,6 +80,13 @@ const FILE_CONFIG = {
     label: "ID Proof (PAN/Aadhaar)",
     accept: "application/pdf,image/jpeg,image/png,image/jpg,image/webp",
     extensions: [".pdf", ".jpg", ".jpeg", ".png", ".webp"],
+    maxSizeMB: 5,
+    multiple: true,
+  },
+  CPHOTO: {
+    label: "Company Photos",
+    accept: "image/jpeg,image/png,image/jpg,image/webp",
+    extensions: [".jpg", ".jpeg", ".png", ".webp"],
     maxSizeMB: 5,
     multiple: true,
   },
